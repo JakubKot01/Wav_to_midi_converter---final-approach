@@ -6,10 +6,9 @@ from scipy.io import wavfile
 import plotly.graph_objects as go
 import tqdm
 import pickle
+import argparse
 
 # Konfiguracja
-AUDIO_FILE = r"Hozier and Bear McCreary - Blood Upon the Snow (from God of War Ragnarök) - Lyric Video.wav"
-FPS = 60
 FFT_WINDOW_SECONDS = [0.05, 0.2, 0.4, 0.6, 0.8]  # ile sekund audio składa się na okno FFT
 FREQ_MIN = 10
 FREQ_MAX = 1000
@@ -22,6 +21,8 @@ CONTENT_DIR = os.path.join(os.getcwd(), "Content")
 
 # Przygotowanie katalogu
 def prepare_directory(directory):
+    if directory == os.getcwd():
+        return
     shutil.rmtree(directory, ignore_errors=True)
     os.makedirs(directory, exist_ok=True)
 
@@ -116,17 +117,20 @@ def plot_fft(p, xf, notes, dimensions=(960, 540)):
 
 
 # Główna funkcja przetwarzania audio
-def process_audio():
-    prepare_directory(CONTENT_DIR)
+def process_audio(audio_file, fps):
+    working_directory = os.getcwd()
+    content_directory = os.path.join(working_directory, "Content")
+
+    prepare_directory(content_directory)
     agents_notes_results = [[] for _ in FFT_WINDOW_SECONDS]
     big_notes_result = []
 
-    fs, data = wavfile.read(AUDIO_FILE)
+    fs, data = wavfile.read(audio_file)
     audio = data.T[0]
     print(audio)
     audio_length = len(audio) / fs
     print(audio_length)
-    frame_count = int(audio_length * FPS)
+    frame_count = int(audio_length * fps)
     frame_offset = int(len(audio) / frame_count)
 
     # Sprawdzenie typu danych i zakresu wartości
@@ -136,7 +140,6 @@ def process_audio():
     for index, agent in enumerate(FFT_WINDOW_SECONDS):
         current_notes_result = []
         # Odczyt pliku audio
-        frame_step = (fs / FPS)
         fft_window_size = int(fs * agent)
 
         # Okno FFT i częstotliwości
@@ -197,6 +200,14 @@ def process_audio():
         pickle.dump(big_notes_result, f)
 
 
-# Uruchomienie głównej funkcji
+def main():
+    parser = argparse.ArgumentParser(description="Process audio file and perform FFT analysis.")
+    parser.add_argument("audio_file", type=str, help="Path to the audio file (wav format).")
+    parser.add_argument("fps", type=int, help="Frames per second for processing.")
+
+    args = parser.parse_args()
+    process_audio(args.audio_file, args.fps)
+
+
 if __name__ == "__main__":
-    process_audio()
+    main()

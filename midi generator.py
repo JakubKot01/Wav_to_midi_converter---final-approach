@@ -1,9 +1,10 @@
 import pickle
 from mido import Message, MidiFile, MidiTrack
+import argparse
 
 FILTER_VERBOSE = False
 
-BPM = 140
+BPM = 126
 FPS = 60
 
 GUITAR_SOUND_LIMIT = "C6"
@@ -15,12 +16,9 @@ TICKS_PER_FRAME = int((TICKS_PER_QUARTER_NOTE * BPM) / (60 * FPS))
 TICKS_PER_EIGHTH_NOTE = int(TICKS_PER_QUARTER_NOTE / 2)
 TICKS_PER_SIXTEENTH_NOTE = int(TICKS_PER_EIGHTH_NOTE / 2)
 
-THE_SMALLEST_UNIT = TICKS_PER_SIXTEENTH_NOTE
+THE_SMALLEST_UNIT = TICKS_PER_EIGHTH_NOTE
 
 print(f'Frame length: {TICKS_PER_FRAME}, ticks per eighth note: {THE_SMALLEST_UNIT}')
-
-with open('piano_sample.pickle', 'rb') as file:
-    big_notes_result = pickle.load(file)
 
 note_to_midi = {
     "C0": 12, "C#0": 13, "Db0": 13, "D0": 14, "D#0": 15, "Eb0": 15, "E0": 16, "F0": 17,
@@ -79,7 +77,7 @@ tons_sounds_counters = {
 
 # TODO: Sprawdzić czy głośność narasta czy maleje
 
-def is_note_stable(note_name, counter, notes_name_table):
+def is_note_stable(note_name, counter, notes_names_table):
     if len(notes_names_table) - counter < 8:
         return True
 
@@ -89,11 +87,11 @@ def is_note_stable(note_name, counter, notes_name_table):
     return True
 
 
-def is_dominating_note(note, second_note, counter, notes_name_table, notes_volumes_table):
+def is_dominating_note(note, second_note, counter, notes_names_table, notes_volumes_table):
     while counter < len(notes_names_table) - 1:
-        if note not in notes_names_table[counter] and second_note in notes_name_table[counter]:
+        if note not in notes_names_table[counter] and second_note in notes_names_table[counter]:
             return False
-        elif note in notes_names_table[counter] and second_note not in notes_name_table[counter]:
+        elif note in notes_names_table[counter] and second_note not in notes_names_table[counter]:
             return True
         counter += 1
 
@@ -132,7 +130,7 @@ def are_note_properties_ok(note_name, counter, notes_name_table, notes_volumes_t
     return True
 
 
-def is_going_to_be_replaced(note, counter, depth=10):
+def is_going_to_be_replaced(note, counter, notes_names_table, depth=10):
     if len(notes_names_table) - counter < depth:
         return False
     for i in range(counter, counter + depth):
@@ -141,21 +139,6 @@ def is_going_to_be_replaced(note, counter, depth=10):
                     and note_to_midi[note] != note_to_midi[incoming_notes] + 1:
                 return False
     return True
-
-
-mid = MidiFile(type=0)
-mid.ticks_per_beat = TICKS_PER_QUARTER_NOTE
-track0 = MidiTrack()
-
-current_time = 0
-
-current_notes = []
-previous_notes = []
-
-# Filtering
-
-notes_names_table = []
-notes_volumes_progress_table = []
 
 
 def is_note_lost(note, current_notes, future_notes):
@@ -194,90 +177,121 @@ def stabilize_notes(big_notes_result):
     return preprocessed_notes
 
 
-big_notes_result = stabilize_notes(big_notes_result)
+def generate():
+    with open('piano_sample.pickle', 'rb') as file:
+        big_notes_result = pickle.load(file)
 
-for notes in big_notes_result:
+    mid = MidiFile(type=0)
+    mid.ticks_per_beat = TICKS_PER_QUARTER_NOTE
+    track0 = MidiTrack()
+
+    current_time = 0
+
     current_notes = []
-    current_volumes = []
-    for note in notes:
-        if note[1] in note_to_midi and note[1] not in current_notes:
-            # print(note[1])
-            current_notes.append(note[1])
-            current_volumes.append([note[1], note[2]])
-    notes_names_table.append(current_notes)
-    notes_volumes_progress_table.append(current_volumes)
+    previous_notes = []
 
-global_max_volume = 0.0
-for notes_volumes in notes_volumes_progress_table:
-    for note in notes_volumes:
-        if note[1] > global_max_volume:
-            global_max_volume = note[1]
+    # Filtering
 
-notes_volumes_table = []
+    notes_names_table = []
+    notes_volumes_progress_table = []
 
-for index, notes_volumes in enumerate(notes_volumes_progress_table):
-    frame_notes = []
-    for note in notes_volumes:
-        note_max_volume = note[1]
-        for frame_index in range(index, len(notes_volumes_progress_table)):
-            note_found = False
-            for frame_note in notes_volumes_progress_table[frame_index]:
-                if frame_note[0] == note[0]:
-                    if frame_note[1] > note_max_volume:
-                        note_max_volume = frame_note[1]
-                    note_found = True
-            if not note_found:
-                break
-        frame_notes.append([note[0], note_max_volume])
-    notes_volumes_table.append(frame_notes)
+    big_notes_result = stabilize_notes(big_notes_result)
 
-print(global_max_volume)
+    for notes in big_notes_result:
+        current_notes = []
+        current_volumes = []
+        for note in notes:
+            if note[1] in note_to_midi and note[1] not in current_notes:
+                # print(note[1])
+                current_notes.append(note[1])
+                current_volumes.append([note[1], note[2]])
+        notes_names_table.append(current_notes)
+        notes_volumes_progress_table.append(current_volumes)
 
-# Creating midi
+    global_max_volume = 0.0
+    for notes_volumes in notes_volumes_progress_table:
+        for note in notes_volumes:
+            if note[1] > global_max_volume:
+                global_max_volume = note[1]
 
-current_notes = []
-previous_notes = []
-current_time = 0
-last_message_time = 0
-last_smallest_unit = 0
+    notes_volumes_table = []
 
-active_notes = {}
+    for index, notes_volumes in enumerate(notes_volumes_progress_table):
+        frame_notes = []
+        for note in notes_volumes:
+            note_max_volume = note[1]
+            for frame_index in range(index, len(notes_volumes_progress_table)):
+                note_found = False
+                for frame_note in notes_volumes_progress_table[frame_index]:
+                    if frame_note[0] == note[0]:
+                        if frame_note[1] > note_max_volume:
+                            note_max_volume = frame_note[1]
+                        note_found = True
+                if not note_found:
+                    break
+            frame_notes.append([note[0], note_max_volume])
+        notes_volumes_table.append(frame_notes)
 
-for counter, notes in enumerate(notes_names_table):
-    last_smallest_unit = int(current_time // THE_SMALLEST_UNIT) * THE_SMALLEST_UNIT
-    print(f"{notes}", end="\t")
-    for note_number, note in enumerate(notes):
-        if note not in previous_notes:
-            if are_note_properties_ok(note, counter, notes_names_table, notes_volumes_table, note_number, active_notes):
-                volume = int((notes_volumes_table[counter][note_number][1] / global_max_volume) * 127 / 2) + 63
-                track0.append(Message('note_on',
-                                      note=int(note_to_midi[note]),
-                                      velocity=volume,
-                                      time=last_smallest_unit - last_message_time))
-                print(f'Note {note} activated from frame No. {counter}, {current_time} at time {last_smallest_unit}')
+    print(global_max_volume)
+
+    # Creating midi
+
+    current_notes = []
+    previous_notes = []
+    current_time = 0
+    last_message_time = 0
+    last_smallest_unit = 0
+
+    active_notes = {}
+
+    for counter, notes in enumerate(notes_names_table):
+        last_smallest_unit = int(current_time // THE_SMALLEST_UNIT) * THE_SMALLEST_UNIT
+        print(f"{notes}", end="\t")
+        for note_number, note in enumerate(notes):
+            if note not in previous_notes:
+                if are_note_properties_ok(note, counter, notes_names_table, notes_volumes_table, note_number, active_notes):
+                    volume = int((notes_volumes_table[counter][note_number][1] / global_max_volume) * 127 / 2) + 63
+                    track0.append(Message('note_on',
+                                          note=int(note_to_midi[note]),
+                                          velocity=volume,
+                                          time=last_smallest_unit - last_message_time))
+                    print(f'Note {note} activated from frame No. {counter}, {current_time} at time {last_smallest_unit}')
+                    current_notes.append(note)
+                    active_notes[note] = True
+                    last_message_time = last_smallest_unit
+            else:
                 current_notes.append(note)
-                active_notes[note] = True
+
+        for note in previous_notes:
+            if note not in current_notes:
+                track0.append(Message('note_off',
+                                      note=int(note_to_midi[note]),
+                                      velocity=0,
+                                      time=last_smallest_unit - last_message_time))
+                print(f'Note {note} deactivated from frame No. {counter}, {current_time}, at time {last_smallest_unit}')
+                if active_notes[note]:
+                    active_notes[note] = False
                 last_message_time = last_smallest_unit
-        else:
-            current_notes.append(note)
 
-    for note in previous_notes:
-        if note not in current_notes:
-            track0.append(Message('note_off',
-                                  note=int(note_to_midi[note]),
-                                  velocity=0,
-                                  time=last_smallest_unit - last_message_time))
-            print(f'Note {note} deactivated from frame No. {counter}, {current_time}, at time {last_smallest_unit}')
-            if active_notes[note]:
-                active_notes[note] = False
-            last_message_time = last_smallest_unit
+        print("\n")
+        # print(f'current time: {current_time}, frame number: {counter}')
+        previous_notes = current_notes.copy()
+        current_notes.clear()
+        current_time += TICKS_PER_FRAME
 
-    print("\n")
-    # print(f'current time: {current_time}, frame number: {counter}')
-    previous_notes = current_notes.copy()
-    current_notes.clear()
-    current_time += TICKS_PER_FRAME
+    mid.tracks.append(track0)
 
-mid.tracks.append(track0)
+    mid.save('piano_sample.mid')
 
-mid.save('piano_sample.mid')
+
+def main():
+    # parser = argparse.ArgumentParser(description="Process audio file and perform FFT analysis.")
+    # parser.add_argument("audio_file", type=str, help="Path to the audio file (wav format).")
+    # parser.add_argument("fps", type=int, help="Frames per second for processing.")
+#
+    # args = parser.parse_args()
+    generate()
+
+
+if __name__ == "__main__":
+    main()
