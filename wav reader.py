@@ -8,7 +8,7 @@ import tqdm
 import pickle
 
 # Konfiguracja
-AUDIO_FILE = r"Sample 4 - source.wav"
+AUDIO_FILE = r"Hozier and Bear McCreary - Blood Upon the Snow (from God of War Ragnarök) - Lyric Video.wav"
 FPS = 60
 FFT_WINDOW_SECONDS = [0.05, 0.2, 0.4, 0.6, 0.8]  # ile sekund audio składa się na okno FFT
 FREQ_MIN = 10

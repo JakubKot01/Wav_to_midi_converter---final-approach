@@ -3,11 +3,11 @@ from mido import Message, MidiFile, MidiTrack
 
 FILTER_VERBOSE = False
 
-BPM = 120
+BPM = 140
 FPS = 60
 
 GUITAR_SOUND_LIMIT = "C6"
-GUITAR = True
+GUITAR = False
 
 TICKS_PER_QUARTER_NOTE = 960
 TICKS_PER_FRAME = int((TICKS_PER_QUARTER_NOTE * BPM) / (60 * FPS))
@@ -101,9 +101,9 @@ def is_dominating_note(note, second_note, counter, notes_name_table, notes_volum
 
 
 def are_note_properties_ok(note_name, counter, notes_name_table, notes_volumes_table, note_number, active_notes):
-    # Czy nuta jest w tonacji?
-    # if note_name[:-1] not in moll_tons[found_ton]:
-    #    return False
+    if note_name[:-1] not in moll_tons["F-moll"]:
+        return False
+
     if GUITAR and note_to_midi[note_name] >= note_to_midi[GUITAR_SOUND_LIMIT]:
         return False
 
