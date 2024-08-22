@@ -118,6 +118,7 @@ def plot_fft(p, xf, notes, dimensions=(960, 540)):
 
 # Główna funkcja przetwarzania audio
 def process_audio(audio_file, fps):
+
     working_directory = os.getcwd()
     content_directory = os.path.join(working_directory, "Content")
 
@@ -196,7 +197,16 @@ def process_audio(audio_file, fps):
         #     fig.write_image(os.path.join(CONTENT_DIR, f"frame{frame_number}.png"), scale=2)
 
         # Zapisanie wyników przy użyciu pickle
-    with open('piano_sample.pickle', 'wb') as f:
+
+    if audio_file[0] == '.' and audio_file[1] == '\\':
+        audio_file = audio_file[2:]
+
+    if audio_file[-4] == '.':
+        audio_file = audio_file[:-4]
+    pickle_name = audio_file + '.pickle'
+
+    print(pickle_name)
+    with open(pickle_name, 'wb') as f:
         pickle.dump(big_notes_result, f)
 
 
