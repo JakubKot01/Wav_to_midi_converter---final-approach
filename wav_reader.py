@@ -7,7 +7,7 @@ import pickle
 import argparse
 
 # Konfiguracja
-FFT_WINDOW_SECONDS = [0.05, 0.2, 0.4, 0.6, 0.8]  # ile sekund audio składa się na okno FFT
+FFT_WINDOW_SECONDS = [0.05, 0.2, 0.3, 0.4, 0.6]  # ile sekund audio składa się na okno FFT
 NOTE_NAMES = ["C", "C#", "D", "D#", "E", "F", "F#", "G", "G#", "A", "A#", "B"]
 NOTE_RECOGNITION_THRESHOLD = 0.2
 

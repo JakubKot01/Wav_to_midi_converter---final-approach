@@ -83,8 +83,8 @@ def is_dominating_note(note, second_note, counter, notes_names_table):
         counter += 1
 
 
-def are_note_properties_ok(note_name, counter, notes_name_table, active_notes):
-    if note_name[:-1] not in moll_tons["A-moll"]:
+def are_note_properties_ok(note_name, counter, notes_name_table, active_notes, tone):
+    if tone != "" and note_name[:-1] not in moll_tons[tone]:
         return False
 
     if GUITAR and note_to_midi[note_name] >= note_to_midi[HIGH_NOTE_LIMIT]:
@@ -166,7 +166,22 @@ def stabilize_notes(big_notes_result):
     return preprocessed_notes
 
 
-def generate(input_name, bpm, fps, precision=2, the_smallest_unit=THE_SMALLEST_UNIT):
+def find_tone(notes_names_table):
+    moll_tons_counters = {}
+    for notes in notes_names_table:
+        for note in notes:
+            for ton in moll_tons:
+                if note[:-1] in moll_tons[ton]:
+                    if ton not in moll_tons_counters:
+                        moll_tons_counters[ton] = 1
+                    else:
+                        moll_tons_counters[ton] += 1
+    print(moll_tons_counters)
+    found_ton = max(moll_tons_counters, key=moll_tons_counters.get)
+    return found_ton
+
+
+def generate(input_name, bpm, fps, precision=2, deduce_tone=False, tone="", the_smallest_unit=THE_SMALLEST_UNIT):
     ticks_per_frame = int((TICKS_PER_QUARTER_NOTE * bpm) / (60 * fps))
 
     if precision == 2:
@@ -226,6 +241,14 @@ def generate(input_name, bpm, fps, precision=2, the_smallest_unit=THE_SMALLEST_U
             frame_notes.append([note[0], note_max_volume])
         notes_volumes_table.append(frame_notes)
 
+    if tone == "":
+        if deduce_tone:
+            tone = find_tone(notes_names_table)
+            print(f"Tone not given as argument. Found tone: {tone}")
+        else:
+            print(f"Tone not given as argument. Deducing OFF")
+
+
     # Creating midi
 
     current_notes = []
@@ -241,7 +264,7 @@ def generate(input_name, bpm, fps, precision=2, the_smallest_unit=THE_SMALLEST_U
             print(f"{notes}", end="\t")
         for note_number, note in enumerate(notes):
             if note not in previous_notes:
-                if are_note_properties_ok(note, counter, notes_names_table, active_notes):
+                if are_note_properties_ok(note, counter, notes_names_table, active_notes, tone):
                     volume = int((notes_volumes_table[counter][note_number][1] / global_max_volume) * 127 / 2) + 63
                     track0.append(Message('note_on',
                                           note=int(note_to_midi[note]),
