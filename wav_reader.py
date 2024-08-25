@@ -1,25 +1,19 @@
 import os
 import shutil
 import numpy as np
-import matplotlib.pyplot as plt
 from scipy.io import wavfile
-import plotly.graph_objects as go
 import tqdm
 import pickle
 import argparse
 
 # Konfiguracja
 FFT_WINDOW_SECONDS = [0.05, 0.2, 0.4, 0.6, 0.8]  # ile sekund audio składa się na okno FFT
-FREQ_MIN = 10
-FREQ_MAX = 1000
 NOTE_NAMES = ["C", "C#", "D", "D#", "E", "F", "F#", "G", "G#", "A", "A#", "B"]
-RESOLUTION = (1920, 1080)
-SCALE = 1  # 0.5=QHD(960x540), 1=HD(1920x1080), 2=4K(3840x2160)
 NOTE_RECOGNITION_THRESHOLD = 0.2
-CONTENT_DIR = os.path.join(os.getcwd(), "Content")
 
 
 # Przygotowanie katalogu
+
 def prepare_directory(directory):
     if directory == os.getcwd():
         return
@@ -89,35 +83,8 @@ def note_name(n):
     return NOTE_NAMES[n % 12] + '0'
 
 
-# Tworzenie wykresu FFT
-def plot_fft(p, xf, notes, dimensions=(960, 540)):
-    layout = go.Layout(
-        title="frequency spectrum",
-        autosize=False,
-        width=dimensions[0],
-        height=dimensions[1],
-        xaxis_title="Frequency (note)",
-        yaxis_title="Magnitude",
-        font={'size': 24}
-    )
-
-    fig = go.Figure(layout=layout,
-                    layout_xaxis_range=[FREQ_MIN, FREQ_MAX],
-                    layout_yaxis_range=[0, 1]
-                    )
-
-    fig.add_trace(go.Scatter(x=xf, y=p))
-
-    for note in notes:
-        fig.add_annotation(x=note[0] + 10, y=note[2],
-                           text=note[1],
-                           font={'size': 48},
-                           showarrow=False)
-    return fig
-
-
 # Główna funkcja przetwarzania audio
-def process_audio(audio_file, fps):
+def process_audio(audio_file, fps, output_name):
 
     working_directory = os.getcwd()
     content_directory = os.path.join(working_directory, "Content")
@@ -145,14 +112,12 @@ def process_audio(audio_file, fps):
 
         # Okno FFT i częstotliwości
         window = 0.5 * (1 - np.cos(np.linspace(0, 2 * np.pi, fft_window_size, False)))
-        # window /= np.sum(window)  # Normalizacja okna
         xf = np.fft.rfftfreq(fft_window_size, 1 / fs)
 
         # results = []
 
         max_amplitude = 0
         # Przetwarzanie każdej ramki
-        # frame_positions = np.linspace(0, len(audio) - fft_window_size, frame_count, endpoint=False, dtype=int)
         for frame_number in tqdm.tqdm(range(frame_count)):
             sample = extract_sample(audio, frame_number, fft_window_size, frame_offset)
 
@@ -189,35 +154,9 @@ def process_audio(audio_file, fps):
                 frame_result.append(frame_note)
 
         big_notes_result.append(frame_result)
-        # results.append((fft, top_notes))
 
-        # Zapisanie wykresów
-        # for frame_number, (fft, notes) in enumerate(results):
-        #     fig = plot_fft(fft.real, xf, notes, RESOLUTION)
-        #     fig.write_image(os.path.join(CONTENT_DIR, f"frame{frame_number}.png"), scale=2)
-
-        # Zapisanie wyników przy użyciu pickle
-
-    if audio_file[0] == '.' and audio_file[1] == '\\':
-        audio_file = audio_file[2:]
-
-    if audio_file[-4] == '.':
-        audio_file = audio_file[:-4]
-    pickle_name = audio_file + '.pickle'
+    pickle_name = output_name + ".pickle"
 
     print(pickle_name)
     with open(pickle_name, 'wb') as f:
         pickle.dump(big_notes_result, f)
-
-
-def main():
-    parser = argparse.ArgumentParser(description="Process audio file and perform FFT analysis.")
-    parser.add_argument("audio_file", type=str, help="Path to the audio file (wav format).")
-    parser.add_argument("fps", type=int, help="Frames per second for processing.")
-
-    args = parser.parse_args()
-    process_audio(args.audio_file, args.fps)
-
-
-if __name__ == "__main__":
-    main()
