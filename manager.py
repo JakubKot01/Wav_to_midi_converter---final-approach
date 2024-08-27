@@ -32,7 +32,7 @@ if __name__ == "__main__":
     parser.add_argument('--tone', type=str, default="", help="The musical key (tone) to use.")
     parser.add_argument('--deduce_tone', type=bool, default=False,
                         help="Whether to deduce the tone automatically (True/False). Default: False")
-    parser.add_argument('--note_recognition_threshold', type=int,
+    parser.add_argument('--note_recognition_threshold', type=float, default=0.3,
                         help="Threshold for note recognition in MIDI generation. Recommended in range [0.2, 0.4]. Default: 0.3")
 
     args = parser.parse_args()
