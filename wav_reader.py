@@ -4,12 +4,10 @@ import numpy as np
 from scipy.io import wavfile
 import tqdm
 import pickle
-import argparse
 
 # Konfiguracja
 FFT_WINDOW_SECONDS = [0.05, 0.2, 0.3, 0.4, 0.6]  # ile sekund audio składa się na okno FFT
 NOTE_NAMES = ["C", "C#", "D", "D#", "E", "F", "F#", "G", "G#", "A", "A#", "B"]
-NOTE_RECOGNITION_THRESHOLD = 0.2
 
 
 # Przygotowanie katalogu
@@ -23,10 +21,6 @@ def prepare_directory(directory):
 
 # Ekstrakcja próbki audio
 def extract_sample(audio, frame_number, fft_window_size, frame_offset):
-    # end = frame_position + fft_window_size
-    # if end > len(audio):
-    #     return np.concatenate([audio[frame_position:], np.zeros(end - len(audio))])
-    # return audio[frame_position:end]
 
     end = frame_number * frame_offset
     begin = int(end - fft_window_size)
@@ -84,7 +78,7 @@ def note_name(n):
 
 
 # Główna funkcja przetwarzania audio
-def process_audio(audio_file, fps, output_name):
+def process_audio(audio_file, fps, output_name, note_recognition_threshold=0.3):
 
     working_directory = os.getcwd()
     content_directory = os.path.join(working_directory, "Content")
@@ -131,7 +125,7 @@ def process_audio(audio_file, fps, output_name):
             fft = np.fft.rfft(sample * window)
             fft = np.abs(fft) / max_amplitude
 
-            top_notes = find_top_notes(fft, xf, NOTE_RECOGNITION_THRESHOLD)
+            top_notes = find_top_notes(fft, xf, note_recognition_threshold)
             current_notes_result.append(top_notes)
 
         agents_notes_results[index] = current_notes_result.copy()
@@ -150,7 +144,7 @@ def process_audio(audio_file, fps, output_name):
                 for note in agent_notes_result[frame_index]:
                     if frame_note[1] == note[1]:
                         counter += 1
-            if counter >= 4:
+            if counter >= int(np.ceil(len(FFT_WINDOW_SECONDS) / 2)):
                 frame_result.append(frame_note)
 
         big_notes_result.append(frame_result)

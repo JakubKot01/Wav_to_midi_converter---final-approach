@@ -1,14 +1,6 @@
 import wav_reader
 import midi_generator
-
-# content_table = ["Otherside - Bass.wav",
-#                  "Otherside - Instrumental.wav",
-#                  "Otherside - Vocals.wav"]
-
-# content_table = ["Blood Upon the Snow - Instrumental.wav",
-#                  "Blood Upon the Snow - Vocals.wav"]
-
-content_table = ["Sample 2 - source.wav"]
+import argparse
 
 
 def prepare_file_name(file_name):
@@ -21,13 +13,28 @@ def prepare_file_name(file_name):
     return file_name
 
 
-for file in content_table:
-    file_name = prepare_file_name(file)
+def main(source_name, fps, bpm, tone, deduce_tone, note_recognition_threshold):
+    file_name = prepare_file_name(source_name)
     print(f"processing: {file_name}")
 
-    wav_reader.process_audio(file, 60, file_name)
-    test = file_name.split(" - ")[1]
-    if test == "Vocals":
-        midi_generator.generate(file_name, 80, 60, precision=3)
-    else:
-        midi_generator.generate(file_name, 80, 60, precision=3)
+    wav_reader.process_audio(source_name, 60, file_name, note_recognition_threshold)
+    midi_generator.generate(file_name, 120, 60, precision=3, deduce_tone=True, tone="")
+
+
+if __name__ == "__main__":
+    parser = argparse.ArgumentParser(description="Process audio and generate MIDI.")
+
+    parser.add_argument('source_name', type=str, help="The name of the source WAV file.")
+    parser.add_argument('fps', type=int, help="Frames per second for audio processing.")
+    parser.add_argument('bpm', type=int, help="Beats per minute for MIDI generation.")
+    parser.add_argument('--precision', type=int, default=3, choices=[1, 2, 3, 4],
+                        help="Precision level (1 (quarter notes), 2 (eighth note), 3 (sixteenth note), or 4 (thirty-second note)) for MIDI generation. Default: 3")
+    parser.add_argument('--tone', type=str, default="", help="The musical key (tone) to use.")
+    parser.add_argument('--deduce_tone', type=bool, default=False,
+                        help="Whether to deduce the tone automatically (True/False). Default: False")
+    parser.add_argument('--note_recognition_threshold', type=int,
+                        help="Threshold for note recognition in MIDI generation. Recommended in range [0.2, 0.4]. Default: 0.3")
+
+    args = parser.parse_args()
+
+    main(args.source_name, args.fps, args.bpm, args.tone, args.deduce_tone, args.note_recognition_threshold)

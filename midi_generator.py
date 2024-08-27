@@ -1,10 +1,11 @@
 import pickle
 from mido import Message, MidiFile, MidiTrack
+import numpy as np
 
 FILTER_VERBOSE = False
 
 HIGH_NOTE_LIMIT = "C6"
-GUITAR = True
+PERFORM_LIMIT = True
 
 TICKS_PER_QUARTER_NOTE = 960
 THE_SMALLEST_UNIT = TICKS_PER_QUARTER_NOTE
@@ -64,11 +65,12 @@ tons_sounds_counters = {
 }
 
 
-def is_note_stable(note_name, counter, notes_names_table):
-    if len(notes_names_table) - counter < 8:
+def is_note_stable(note_name, counter, notes_names_table, ticks_per_frame, the_smallest_unit):
+    expected_range = int(np.ceil(the_smallest_unit / ticks_per_frame))
+    if len(notes_names_table) - counter < expected_range:
         return True
 
-    for index in range(8):
+    for index in range(expected_range):
         if note_name not in notes_names_table[counter + index]:
             return False
     return True
@@ -83,14 +85,14 @@ def is_dominating_note(note, second_note, counter, notes_names_table):
         counter += 1
 
 
-def are_note_properties_ok(note_name, counter, notes_name_table, active_notes, tone):
+def are_note_properties_ok(note_name, counter, notes_name_table, active_notes, tone, ticks_per_frame, the_smallest_unit):
     if tone != "" and note_name[:-1] not in moll_tons[tone]:
         return False
 
-    if GUITAR and note_to_midi[note_name] >= note_to_midi[HIGH_NOTE_LIMIT]:
+    if PERFORM_LIMIT and note_to_midi[note_name] >= note_to_midi[HIGH_NOTE_LIMIT]:
         return False
 
-    if not is_note_stable(note_name, counter, notes_name_table):
+    if not is_note_stable(note_name, counter, notes_name_table, ticks_per_frame, the_smallest_unit):
         return False
 
     for second_note in active_notes:
@@ -116,17 +118,6 @@ def are_note_properties_ok(note_name, counter, notes_name_table, active_notes, t
                     return False
     if FILTER_VERBOSE:
         print(f"{note_name} survived")
-    return True
-
-
-def is_going_to_be_replaced(note, counter, notes_names_table, depth=10):
-    if len(notes_names_table) - counter < depth:
-        return False
-    for i in range(counter, counter + depth):
-        for incoming_notes in notes_names_table[i]:
-            if note_to_midi[note] != note_to_midi[incoming_notes] - 1 \
-                    and note_to_midi[note] != note_to_midi[incoming_notes] + 1:
-                return False
     return True
 
 
@@ -181,7 +172,7 @@ def find_tone(notes_names_table):
     return found_ton
 
 
-def generate(input_name, bpm, fps, precision=2, deduce_tone=False, tone="", the_smallest_unit=THE_SMALLEST_UNIT):
+def generate(input_name, bpm=120, fps=60, precision=2, deduce_tone=False, tone="", the_smallest_unit=THE_SMALLEST_UNIT):
     ticks_per_frame = int((TICKS_PER_QUARTER_NOTE * bpm) / (60 * fps))
 
     if precision == 2:
@@ -264,7 +255,7 @@ def generate(input_name, bpm, fps, precision=2, deduce_tone=False, tone="", the_
             print(f"{notes}", end="\t")
         for note_number, note in enumerate(notes):
             if note not in previous_notes:
-                if are_note_properties_ok(note, counter, notes_names_table, active_notes, tone):
+                if are_note_properties_ok(note, counter, notes_names_table, active_notes, tone, ticks_per_frame, the_smallest_unit):
                     volume = int((notes_volumes_table[counter][note_number][1] / global_max_volume) * 127 / 2) + 63
                     track0.append(Message('note_on',
                                           note=int(note_to_midi[note]),
