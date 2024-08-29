@@ -17,8 +17,8 @@ def main(source_name, fps, bpm, tone, deduce_tone, note_recognition_threshold):
     file_name = prepare_file_name(source_name)
     print(f"processing: {file_name}")
 
-    wav_reader.process_audio(source_name, 60, file_name, note_recognition_threshold)
-    midi_generator.generate(file_name, 120, 60, precision=3, deduce_tone=True, tone="")
+    wav_reader.process_audio(source_name, fps, file_name, note_recognition_threshold)
+    midi_generator.generate(file_name, bpm, fps, precision=3, deduce_tone=deduce_tone, tone=tone)
 
 
 if __name__ == "__main__":
@@ -32,8 +32,8 @@ if __name__ == "__main__":
     parser.add_argument('--tone', type=str, default="", help="The musical key (tone) to use.")
     parser.add_argument('--deduce_tone', type=bool, default=False,
                         help="Whether to deduce the tone automatically (True/False). Default: False")
-    parser.add_argument('--note_recognition_threshold', type=float, default=0.3,
-                        help="Threshold for note recognition in MIDI generation. Recommended in range [0.2, 0.4]. Default: 0.3")
+    parser.add_argument('--note_recognition_threshold', type=float, default=0.2,
+                        help="Threshold for note recognition in MIDI generation. Recommended in range [0.2, 0.4]. Default: 0.2")
 
     args = parser.parse_args()
 

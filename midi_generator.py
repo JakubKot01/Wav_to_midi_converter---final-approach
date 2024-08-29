@@ -5,6 +5,7 @@ import numpy as np
 FILTER_VERBOSE = False
 
 HIGH_NOTE_LIMIT = "C6"
+LOW_NOTE_LIMIT = "C2"
 PERFORM_LIMIT = True
 
 TICKS_PER_QUARTER_NOTE = 960
@@ -89,7 +90,7 @@ def are_note_properties_ok(note_name, counter, notes_name_table, active_notes, t
     if tone != "" and note_name[:-1] not in moll_tons[tone]:
         return False
 
-    if PERFORM_LIMIT and note_to_midi[note_name] >= note_to_midi[HIGH_NOTE_LIMIT]:
+    if PERFORM_LIMIT and (note_to_midi[note_name] >= note_to_midi[HIGH_NOTE_LIMIT] or note_to_midi[note_name] < note_to_midi[LOW_NOTE_LIMIT]):
         return False
 
     if not is_note_stable(note_name, counter, notes_name_table, ticks_per_frame, the_smallest_unit):
@@ -172,7 +173,8 @@ def find_tone(notes_names_table):
     return found_ton
 
 
-def generate(input_name, bpm=120, fps=60, precision=2, deduce_tone=False, tone="", the_smallest_unit=THE_SMALLEST_UNIT):
+def generate(input_name, bpm, fps, precision, deduce_tone, tone):
+    the_smallest_unit = THE_SMALLEST_UNIT
     ticks_per_frame = int((TICKS_PER_QUARTER_NOTE * bpm) / (60 * fps))
 
     if precision == 2:
@@ -251,6 +253,7 @@ def generate(input_name, bpm=120, fps=60, precision=2, deduce_tone=False, tone="
 
     for counter, notes in enumerate(notes_names_table):
         last_smallest_unit = int(current_time // the_smallest_unit) * the_smallest_unit
+        # last_smallest_unit = current_time
         if FILTER_VERBOSE:
             print(f"{notes}", end="\t")
         for note_number, note in enumerate(notes):
