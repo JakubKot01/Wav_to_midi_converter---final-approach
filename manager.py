@@ -13,19 +13,18 @@ def prepare_file_name(file_name):
     return file_name
 
 
-def main(source_name, fps, bpm, tone, deduce_tone, note_recognition_threshold):
+def main(source_name, fps, bpm, precision, tone, deduce_tone, note_recognition_threshold):
     file_name = prepare_file_name(source_name)
     print(f"processing: {file_name}")
 
     wav_reader.process_audio(source_name, fps, file_name, note_recognition_threshold)
-    midi_generator.generate(file_name, bpm, fps, precision=3, deduce_tone=deduce_tone, tone=tone)
+    midi_generator.generate(file_name, bpm, fps, precision, deduce_tone, tone)
 
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Process audio and generate MIDI.")
 
     parser.add_argument('source_name', type=str, help="The name of the source WAV file.")
-    parser.add_argument('fps', type=int, help="Frames per second for audio processing.")
     parser.add_argument('bpm', type=int, help="Beats per minute for MIDI generation.")
     parser.add_argument('--precision', type=int, default=3, choices=[1, 2, 3, 4],
                         help="Precision level (1 (quarter notes), 2 (eighth note), 3 (sixteenth note), or 4 (thirty-second note)) for MIDI generation. Default: 3")
@@ -34,7 +33,8 @@ if __name__ == "__main__":
                         help="Whether to deduce the tone automatically (True/False). Default: False")
     parser.add_argument('--note_recognition_threshold', type=float, default=0.2,
                         help="Threshold for note recognition in MIDI generation. Recommended in range [0.2, 0.4]. Default: 0.2")
+    parser.add_argument('--fps', type=int, default=60, help="Frames per second for audio processing.")  
 
     args = parser.parse_args()
 
-    main(args.source_name, args.fps, args.bpm, args.tone, args.deduce_tone, args.note_recognition_threshold)
+    main(args.source_name, args.fps, args.bpm, args.precision, args.tone, args.deduce_tone, args.note_recognition_threshold)

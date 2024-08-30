@@ -193,8 +193,6 @@ def generate(input_name, bpm, fps, precision, deduce_tone, tone):
     mid.ticks_per_beat = TICKS_PER_QUARTER_NOTE
     track0 = MidiTrack()
 
-    # Filtering
-
     notes_names_table = []
     notes_volumes_progress_table = []
 
@@ -241,9 +239,6 @@ def generate(input_name, bpm, fps, precision, deduce_tone, tone):
         else:
             print(f"Tone not given as argument. Deducing OFF")
 
-
-    # Creating midi
-
     current_notes = []
     previous_notes = []
     current_time = 0
@@ -253,7 +248,6 @@ def generate(input_name, bpm, fps, precision, deduce_tone, tone):
 
     for counter, notes in enumerate(notes_names_table):
         last_smallest_unit = int(current_time // the_smallest_unit) * the_smallest_unit
-        # last_smallest_unit = current_time
         if FILTER_VERBOSE:
             print(f"{notes}", end="\t")
         for note_number, note in enumerate(notes):

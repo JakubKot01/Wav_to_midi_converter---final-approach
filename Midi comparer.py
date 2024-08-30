@@ -1,7 +1,5 @@
 import mido
 
-approximation_limit = 240 # 16-note
-
 midi_to_note = {
     12: ["C0"],
     13: ["C#0", "Db0"],
@@ -129,13 +127,10 @@ def read_midi_notes(file_path):
     for track in midi.tracks:
         current_time = 0
         for msg in track:
-            print(msg)
-            # if msg.type == "note_on" or msg.type == "note_off":
-            #     print(f"Type: {msg.type}, note: {msg.note}, time: {msg.time}")
             current_time += msg.time
-            if msg.type == 'note_on' and msg.velocity > 0:  # Note on event
+            if msg.type == 'note_on' and msg.velocity > 0:
                 notes.append((current_time, msg.note))
-                # print(current_time, end=", ")
+                print(current_time, end=", ")
 
     print("\n")
     return notes
@@ -147,10 +142,11 @@ def compare_midi_files(file1, file2):
     print("\nReproduction:")
     notes2 = read_midi_notes(file2)
 
+    approximation_limit = int(mido.MidiFile(file1).ticks_per_beat // 4)
+
     matched_notes = 0
     almost_matched_notes = 0
 
-    # Use a set for fast lookup
     notes2_set = set(notes2)
     matched_notes_set = set()
     almost_matched_notes_set = set()
@@ -159,7 +155,7 @@ def compare_midi_files(file1, file2):
         if note in notes2_set:
             matched_notes += 1
             matched_notes_set.add(note)
-        for shift in range(note[0] - approximation_limit, note[0] + approximation_limit):
+        for shift in range(-approximation_limit, approximation_limit + 1):
             shifted_time = note[0] + shift
             shifted_note = (shifted_time, note[1])
             if shifted_note in notes2_set:
@@ -174,17 +170,10 @@ def compare_midi_files(file1, file2):
 
 
 # Przykład użycia
-file1 = 'dramatic piano - how should it be.mid'
-file2 = 'Sample 1 - source - result.mid'
+file1 = 'Spring - source.mid'
+file2 = 'Spring - source - result.mid'
 
 matched_notes_count, percentage_match, matched_notes_set, almost_matched_count, percentage_almost_match, almost_matched_notes_set = compare_midi_files(file1, file2)
 
-for note in matched_notes_set:
-    print(f"Matched note: {note[0], midi_to_note[note[1]]}")
-print(f"Number of matched notes: {matched_notes_count}")
 print(f"Accuracy : {percentage_match:.2f}%")
-
-# for note in almost_matched_notes_set:
-#     print(f"Matched note: {note[0], midi_to_note[note[1]]}")
-# print(f"Number of matched notes: {almost_matched_count}")
-# print(f"Accuracy : {percentage_almost_match:.2f}%")
+print(f"Almost Accuracy : {percentage_almost_match:.2f}%")
